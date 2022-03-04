@@ -1,0 +1,49 @@
+name: Commit and pull-request
+description: GitHub Action to create a commit and a pull-request
+inputs:
+  branch:
+    type: string
+    required: true
+  title:
+    type: boolean
+    required: true
+  description:
+    type: string
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Commit and pull-request
+      shell: bash
+      # Add string inputs to memory instead of using string substituion in shell script
+      # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+      env:
+        BRANCH: ${{ inputs.branch }}
+        TITLE: ${{ inputs.title }}
+        DESCRIPTION: ${{ inputs.description }}
+      run: |
+        # Run git commit, push and create pull-request as 'github-actions' user
+        NEW_BRANCH=pulls/$BRANCH/update-js-$(date +%s)
+        git config --local user.name "github-actions"
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git checkout -b $NEW_BRANCH
+        git add .
+        git commit -m "$TITLE"
+        git status
+        git push --set-upstream origin $NEW_BRANCH
+        # Create new pull-request via GitHub API
+        # https://docs.github.com/en/rest/reference/pulls#create-a-pull-request
+        curl -s \
+        -X POST https://api.github.com/repos/${{ github.repository }}/pulls \
+        -H "Accept: application/vnd.github.v3+json" \
+        -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+        -d @- << EOF
+        {
+          "title": "$TITLE",
+          "body": "$DESCRIPTION",
+          "head": "$NEW_BRANCH",
+          "base": "$BRANCH"
+        }
+        EOF
+        echo "New pull-request created"
