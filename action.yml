@@ -19,7 +19,7 @@ runs:
       env:
         BRANCH: ${{ inputs.branch }}
       run: |
-        if [[ "$BRANCH" =~ [^a-zA-Z0-9\./_\-] ]]; then
+        if [[ "$BRANCH" =~ [^a-zA-Z0-9\./_\-] ]] || [ -z "$BRANCH" ]; then
           echo "Invalid branch name"
           exit 1
         fi
