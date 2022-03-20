@@ -37,6 +37,7 @@ runs:
         TITLE: ${{ inputs.title }}
         DESCRIPTION: ${{ inputs.description }}
       run: |
+        BASE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
         # Run git commit, push and create pull-request as 'github-actions' user
         git config --local user.name "github-actions"
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -55,8 +56,8 @@ runs:
         {
           "title": "$TITLE",
           "body": "$DESCRIPTION",
-          "head": "$NEW_BRANCH",
-          "base": "$BRANCH"
+          "head": "$BRANCH",
+          "base": "$BASE_BRANCH"
         }
         EOF
         echo "New pull-request created"
