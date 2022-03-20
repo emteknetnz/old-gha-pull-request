@@ -1,5 +1,5 @@
-name: Commit and pull-request
-description: GitHub Action to create a commit and a pull-request
+name: Branch commit and pull-request
+description: GitHub Action to create a branch, commit and a pull-request as the github-actions user
 inputs:
   branch:
     type: string
@@ -14,7 +14,21 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Commit and pull-request
+    - name: Validate branch
+      shell: bash
+      env:
+        BRANCH: ${{ inputs.branch }}
+      run: |
+        if [[ "$BRANCH" =~ [^a-zA-Z0-9\./_\-] ]]; then
+          echo "Invalid branch name"
+          exit 1
+        fi
+        if ! [[ -z $(git ls-remote --heads origin $BRANCH) ]]; then
+          echo "Branch $BRANCH already exists"
+          exit 1
+        fi
+      
+    - name: Branch commit and pull-request
       shell: bash
       # Add string inputs to memory instead of using string substituion in shell script
       # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
@@ -24,14 +38,13 @@ runs:
         DESCRIPTION: ${{ inputs.description }}
       run: |
         # Run git commit, push and create pull-request as 'github-actions' user
-        NEW_BRANCH=pulls/$BRANCH/update-js-$(date +%s)
         git config --local user.name "github-actions"
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git checkout -b $NEW_BRANCH
+        git checkout -b "$BRANCH"
         git add .
         git commit -m "$TITLE"
         git status
-        git push --set-upstream origin $NEW_BRANCH
+        git push --set-upstream origin "$BRANCH"
         # Create new pull-request via GitHub API
         # https://docs.github.com/en/rest/reference/pulls#create-a-pull-request
         curl -s \
